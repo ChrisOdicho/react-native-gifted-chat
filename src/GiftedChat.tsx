@@ -211,6 +211,7 @@ export interface GiftedChatProps<TMessage extends IMessage = IMessage> {
 export interface GiftedChatState<TMessage extends IMessage = IMessage> {
   isInitialized: boolean
   composerHeight?: number
+  mediaWindowHeight: number
   messagesContainerHeight?: number | Animated.Value
   typingDisabled: boolean
   text?: string
@@ -398,6 +399,7 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
 
   state = {
     isInitialized: false, // initialization will calculate maxHeight before rendering the chat
+    mediaWindowHeight: 0,
     composerHeight: this.props.minComposerHeight,
     messagesContainerHeight: undefined,
     typingDisabled: false,
@@ -568,8 +570,9 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
    * Returns the height, based on current window size, without taking the keyboard into account.
    */
   getBasicMessagesContainerHeight(composerHeight = this.state.composerHeight) {
+    const totalComposerHeight = composerHeight || 0 + this.state.mediaWindowHeight
     return (
-      this.getMaxHeight()! - this.calculateInputToolbarHeight(composerHeight!)
+      this.getMaxHeight()! - this.calculateInputToolbarHeight(totalComposerHeight!)
     )
   }
 
@@ -579,8 +582,9 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
   getMessagesContainerHeightWithKeyboard(
     composerHeight = this.state.composerHeight,
   ) {
+    const totalComposerHeight = composerHeight || 0 + this.state.mediaWindowHeight
     return (
-      this.getBasicMessagesContainerHeight(composerHeight) -
+      this.getBasicMessagesContainerHeight(totalComposerHeight) -
       this.getKeyboardHeight() +
       this.getBottomOffset()
     )
@@ -758,18 +762,22 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
     }
   }
 
-  onInputSizeChanged = (size: { height: number }) => {
+  onInputSizeChanged = (size: { height: number, mediaWindowHeight: number }) => {
+    const mediaWindowHeight = size.mediaWindowHeight || 0;
     const newComposerHeight = Math.max(
       this.props.minComposerHeight!,
       Math.min(this.props.maxComposerHeight!, size.height),
     )
+    const totalNewComposerHeight = newComposerHeight + mediaWindowHeight;
     const newMessagesContainerHeight = this.getMessagesContainerHeightWithKeyboard(
-      newComposerHeight,
+      totalNewComposerHeight,
     )
     this.setState({
       composerHeight: newComposerHeight,
       messagesContainerHeight: newMessagesContainerHeight,
     })
+
+    if(size.mediaWindowHeight){ this.setState({mediaWindowHeight: size.mediaWindowHeight})}
   }
 
   onInputTextChanged = (text: string) => {
@@ -815,7 +823,7 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
     // fix an issue when keyboard is dismissing during the initialization
     const { layout } = e.nativeEvent
     if (
-      this.getMaxHeight() !== layout.height ||
+      this.getMaxHeight() !== layout.height || 
       this.getIsFirstLayout() === true
     ) {
       this.setMaxHeight(layout.height)
