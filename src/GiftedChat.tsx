@@ -400,7 +400,7 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
   state = {
     isInitialized: false, // initialization will calculate maxHeight before rendering the chat
     mediaWindowHeight: 0,
-    composerHeight: this.props.minComposerHeight,
+    composerHeight: this.props.minComposerHeight || 0,
     messagesContainerHeight: undefined,
     typingDisabled: false,
     text: undefined,
@@ -570,8 +570,7 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
    * Returns the height, based on current window size, without taking the keyboard into account.
    */
   getBasicMessagesContainerHeight(
-    composerHeight = this.state.composerHeight ||
-      0 + this.state.mediaWindowHeight,
+    composerHeight = this.state.composerHeight + this.state.mediaWindowHeight,
   ) {
     return (
       this.getMaxHeight()! - this.calculateInputToolbarHeight(composerHeight!)
@@ -582,8 +581,7 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
    * Returns the height, based on current window size, taking the keyboard into account.
    */
   getMessagesContainerHeightWithKeyboard(
-    composerHeight = this.state.composerHeight ||
-      0 + this.state.mediaWindowHeight,
+    composerHeight = this.state.composerHeight + this.state.mediaWindowHeight,
   ) {
     return (
       this.getBasicMessagesContainerHeight(composerHeight) -
