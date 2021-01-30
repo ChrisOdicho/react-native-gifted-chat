@@ -780,7 +780,7 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
       messagesContainerHeight: newMessagesContainerHeight,
     })
 
-    if (size.mediaWindowHeight) {
+    if (size.mediaWindowHeight !== undefined) {
       this.setState({ mediaWindowHeight: size.mediaWindowHeight })
     }
   }
