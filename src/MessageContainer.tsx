@@ -14,6 +14,7 @@ import {
   StyleProp,
   ViewStyle,
   Platform,
+  ViewToken,
 } from 'react-native'
 
 import LoadEarlier from './LoadEarlier'
@@ -62,6 +63,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 1,
   },
+  scrollToUnreadButtonStyle: {
+    width: 170,
+    height: 30,
+    position: 'absolute',
+    top: 100,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    backgroundColor: '#F0FBFE'
+  },
+  scrollToUnreadButtonTextStyle: {
+    color: '#616264',
+    fontSize: 12,
+    lineHeight: 20,
+  }
 })
 
 export interface MessageContainerProps<TMessage extends IMessage> {
@@ -87,10 +105,13 @@ export interface MessageContainerProps<TMessage extends IMessage> {
   onQuickReply?(replies: Reply[]): void
   infiniteScroll?: boolean
   isLoadingEarlier?: boolean
+  lastUnreadIndex: number
+  resetLastUnreadIndex(): void
 }
 
 interface State {
   showScrollBottom: boolean
+  showScrollToIndexButton: boolean
 }
 
 export default class MessageContainer<
@@ -116,6 +137,8 @@ export default class MessageContainer<
     scrollToBottomStyle: {},
     infiniteScroll: false,
     isLoadingEarlier: false,
+    lastUnreadIndex: 0,
+    resetLastUnreadIndex: () => {}
   }
 
   static propTypes = {
@@ -138,10 +161,13 @@ export default class MessageContainer<
     alignTop: PropTypes.bool,
     scrollToBottomStyle: StylePropType,
     infiniteScroll: PropTypes.bool,
+    lastUnreadIndex: PropTypes.number,
+    resetLastUnreadIndex: PropTypes.func,
   }
 
   state = {
     showScrollBottom: false,
+    showScrollToIndexButton: false,
   }
 
   renderTypingIndicator = () => {
@@ -327,21 +353,70 @@ export default class MessageContainer<
     }
   }
 
+  scrollToIndex = () => {
+    const { lastUnreadIndex, forwardRef } = this.props;
+    if(forwardRef){
+      forwardRef.current?.scrollToIndex({ index: lastUnreadIndex, animated: true });
+    }
+  }
+
+  onViewableItemsChanged = ({ viewableItems }: {viewableItems: ViewToken[]} ) => {
+    const { lastUnreadIndex, resetLastUnreadIndex } = this.props;
+    const { showScrollToIndexButton } = this.state;
+
+    if(lastUnreadIndex) {
+        const lastUnreadInView = viewableItems.find( item => item.index === lastUnreadIndex );
+        if(!lastUnreadInView) {
+          this.setState({showScrollToIndexButton: true})
+        } else if(showScrollToIndexButton){
+          setTimeout(() => { 
+            resetLastUnreadIndex();
+            this.setState({showScrollToIndexButton: false}) 
+          }, 3000);
+        } else if(lastUnreadIndex > 0) {
+          setTimeout(() => {
+              resetLastUnreadIndex();
+          }, 3000);
+        }
+    }
+  }
+
+  handleScrollToIndexFailed = () => {
+    const { forwardRef, lastUnreadIndex } = this.props;
+    const wait = new Promise(resolve => setTimeout(resolve, 500));
+    wait.then(() => {
+        if(forwardRef){
+          forwardRef.current?.scrollToIndex({ index: lastUnreadIndex-5, animated: true });
+        }
+    });
+ }
+
   keyExtractor = (item: TMessage) => `${item._id}`
 
   render() {
-    const { inverted } = this.props
+    const { inverted, lastUnreadIndex } = this.props
+    const { showScrollToIndexButton } = this.state
+
     return (
       <View
         style={
           this.props.alignTop ? styles.containerAlignTop : styles.container
         }
       >
+        { showScrollToIndexButton &&
+          <TouchableOpacity onPress={this.scrollToIndex} style={styles.scrollToUnreadButtonStyle}>
+              <Text style={styles.scrollToUnreadButtonTextStyle}>Unread Message ({lastUnreadIndex+1})</Text>
+          </TouchableOpacity>
+        }
+        
         {this.state.showScrollBottom && this.props.scrollToBottom
           ? this.renderScrollToBottomWrapper()
           : null}
         <FlatList
           ref={this.props.forwardRef}
+          onViewableItemsChanged={this.onViewableItemsChanged }
+          initialScrollIndex={0}  
+          onScrollToIndexFailed={this.handleScrollToIndexFailed}
           extraData={[this.props.extraData, this.props.isTyping]}
           keyExtractor={this.keyExtractor}
           enableEmptySections
