@@ -206,7 +206,7 @@ export interface GiftedChatProps<TMessage extends IMessage = IMessage> {
     props: Message<TMessage>['props'],
     nextProps: Message<TMessage>['props'],
   ): boolean
-  lastUnreadIndex?: number,
+  lastUnreadIndex?: number
   resetLastUnreadIndex?(): void
 }
 
@@ -295,7 +295,7 @@ class GiftedChat<TMessage extends IMessage = IMessage> extends React.Component<
     maxComposerHeight: MAX_COMPOSER_HEIGHT,
     wrapInSafeArea: true,
     lastUnreadIndex: null,
-    resetLastUnreadIndex: () => {}
+    resetLastUnreadIndex: () => {},
   }
 
   static propTypes = {

@@ -64,6 +64,7 @@ const styles = StyleSheet.create({
     shadowRadius: 1,
   },
   scrollToUnreadButtonStyle: {
+    zIndex: 9999,
     width: 170,
     height: 30,
     position: 'absolute',
@@ -73,13 +74,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
-    backgroundColor: '#F0FBFE'
+    backgroundColor: '#F0FBFE',
   },
   scrollToUnreadButtonTextStyle: {
     color: '#616264',
     fontSize: 12,
     lineHeight: 20,
-  }
+  },
 })
 
 export interface MessageContainerProps<TMessage extends IMessage> {
@@ -138,7 +139,7 @@ export default class MessageContainer<
     infiniteScroll: false,
     isLoadingEarlier: false,
     lastUnreadIndex: 0,
-    resetLastUnreadIndex: () => {}
+    resetLastUnreadIndex: () => {},
   }
 
   static propTypes = {
@@ -354,42 +355,49 @@ export default class MessageContainer<
   }
 
   scrollToIndex = () => {
-    const { lastUnreadIndex, forwardRef } = this.props;
-    if(forwardRef){
-      forwardRef.current?.scrollToIndex({ index: lastUnreadIndex, animated: true });
+    const { lastUnreadIndex, forwardRef } = this.props
+    if (forwardRef) {
+      forwardRef.current?.scrollToIndex({
+        index: lastUnreadIndex,
+        animated: true,
+      })
     }
   }
 
-  onViewableItemsChanged = ({ viewableItems }: {viewableItems: ViewToken[]} ) => {
-    const { lastUnreadIndex, resetLastUnreadIndex } = this.props;
-    const { showScrollToIndexButton } = this.state;
-
-    if(lastUnreadIndex) {
-        const lastUnreadInView = viewableItems.find( item => item.index === lastUnreadIndex );
-        if(!lastUnreadInView) {
-          this.setState({showScrollToIndexButton: true})
-        } else if(showScrollToIndexButton){
-          setTimeout(() => { 
-            resetLastUnreadIndex();
-            this.setState({showScrollToIndexButton: false}) 
-          }, 3000);
-        } else if(lastUnreadIndex > 0) {
-          setTimeout(() => {
-              resetLastUnreadIndex();
-          }, 3000);
-        }
+  onViewableItemsChanged = ({
+    viewableItems,
+  }: {
+    viewableItems: ViewToken[]
+  }) => {
+    const { lastUnreadIndex, resetLastUnreadIndex } = this.props
+    const listMaxIndex =  viewableItems.length-1;
+    if (lastUnreadIndex) {
+      const lastUnreadInView = viewableItems.find(
+        item => item.index === lastUnreadIndex,
+      )
+      if (!lastUnreadInView && listMaxIndex === viewableItems[listMaxIndex].index && listMaxIndex > 5) {
+        this.setState({ showScrollToIndexButton: true })
+      } else if (lastUnreadInView) {
+        setTimeout(() => {
+          resetLastUnreadIndex()
+          this.setState({ showScrollToIndexButton: false })
+        }, 3000)
+      }
     }
   }
 
   handleScrollToIndexFailed = () => {
-    const { forwardRef, lastUnreadIndex } = this.props;
-    const wait = new Promise(resolve => setTimeout(resolve, 500));
+    const { forwardRef, lastUnreadIndex } = this.props
+    const wait = new Promise(resolve => setTimeout(resolve, 500))
     wait.then(() => {
-        if(forwardRef){
-          forwardRef.current?.scrollToIndex({ index: lastUnreadIndex-5, animated: true });
-        }
-    });
- }
+      if (forwardRef) {
+        forwardRef.current?.scrollToIndex({
+          index: lastUnreadIndex - 5,
+          animated: true,
+        })
+      }
+    })
+  }
 
   keyExtractor = (item: TMessage) => `${item._id}`
 
@@ -403,19 +411,24 @@ export default class MessageContainer<
           this.props.alignTop ? styles.containerAlignTop : styles.container
         }
       >
-        { showScrollToIndexButton &&
-          <TouchableOpacity onPress={this.scrollToIndex} style={styles.scrollToUnreadButtonStyle}>
-              <Text style={styles.scrollToUnreadButtonTextStyle}>Unread Message ({lastUnreadIndex+1})</Text>
+        {showScrollToIndexButton && (
+          <TouchableOpacity
+            onPress={this.scrollToIndex}
+            style={styles.scrollToUnreadButtonStyle}
+          >
+            <Text style={styles.scrollToUnreadButtonTextStyle}>
+              Unread Message ({lastUnreadIndex + 1})
+            </Text>
           </TouchableOpacity>
-        }
-        
+        )}
+
         {this.state.showScrollBottom && this.props.scrollToBottom
           ? this.renderScrollToBottomWrapper()
           : null}
         <FlatList
           ref={this.props.forwardRef}
-          onViewableItemsChanged={this.onViewableItemsChanged }
-          initialScrollIndex={0}  
+          onViewableItemsChanged={this.onViewableItemsChanged}
+          initialScrollIndex={0}
           onScrollToIndexFailed={this.handleScrollToIndexFailed}
           extraData={[this.props.extraData, this.props.isTyping]}
           keyExtractor={this.keyExtractor}
