@@ -18,8 +18,8 @@ import { StylePropType } from './utils'
 const styles = StyleSheet.create({
   container: {},
   image: {
-    width: 150,
-    height: 100,
+    width: 300,
+    height: 200,
     borderRadius: 13,
     margin: 3,
     resizeMode: 'cover',
